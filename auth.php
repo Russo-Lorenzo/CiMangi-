@@ -1,7 +1,6 @@
 <?php
 require_once 'db.php';
 
-// Puoi sostituire questa funzione per usare password_hash/password_verify
 function login($id, $password) {
     global $pdo;
     $stmt = $pdo->prepare("SELECT * FROM Utenti WHERE ID=? AND Password=?");
