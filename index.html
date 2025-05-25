@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>CiMangi! - Demo Frontend</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2em; }
+        input, button { margin: 0.5em 0; }
+        .pietanza { border: 1px solid #ccc; padding: 1em; margin-bottom: 1em; }
+        #login, #aggiungiPietanza { margin-bottom: 2em; }
+    </style>
+</head>
+<body>
+    <h1>CiMangi! - Demo Frontend</h1>
+
+    <section id="login">
+        <h2>Login</h2>
+        <input type="text" id="loginId" placeholder="ID Utente" />
+        <input type="password" id="loginPassword" placeholder="Password" />
+        <button onclick="login()">Accedi</button>
+        <div id="loginMsg"></div>
+    </section>
+
+    <section id="pietanze" style="display:none;">
+        <h2>Pietanze</h2>
+        <button onclick="caricaPietanze()">Aggiorna elenco pietanze</button>
+        <div id="elencoPietanze"></div>
+    </section>
+
+    <section id="aggiungiPietanza" style="display:none;">
+        <h2>Aggiungi Pietanza</h2>
+        <input type="number" id="catId" placeholder="ID Categoria" />
+        <input type="text" id="nomePietanza" placeholder="Nome" />
+        <input type="number" step="0.01" id="prezzoPietanza" placeholder="Prezzo" />
+        <input type="text" id="descPietanza" placeholder="Descrizione" />
+        <select id="piattoGiorno">
+            <option value="0">No</option>
+            <option value="1">Sì</option>
+        </select>
+        <button onclick="aggiungiPietanza()">Aggiungi</button>
+        <div id="addMsg"></div>
+    </section>
+
+    <script>
+        let token = "";
+
+        function login() {
+            const id = document.getElementById('loginId').value;
+            const password = document.getElementById('loginPassword').value;
+            fetch('index.php/auth', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ID: id, Password: password })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.token) {
+                    token = data.token;
+                    document.getElementById('loginMsg').innerText = "Login riuscito!";
+                    document.getElementById('pietanze').style.display = '';
+                    document.getElementById('aggiungiPietanza').style.display = '';
+                    caricaPietanze();
+                } else {
+                    document.getElementById('loginMsg').innerText = data.error || "Errore login";
+                }
+            })
+            .catch(() => document.getElementById('loginMsg').innerText = "Errore di rete");
+        }
+
+        function caricaPietanze() {
+            fetch('index.php/pietanza', {
+                headers: { 'Authorization': token }
+            })
+            .then(res => res.json())
+            .then(data => {
+                const elenco = document.getElementById('elencoPietanze');
+                elenco.innerHTML = "";
+                if (Array.isArray(data) && data.length > 0) {
+                    data.forEach(p => {
+                        elenco.innerHTML += `<div class="pietanza">
+                            <b>${p.Nome}</b> (${p.Prezzo}€)<br>
+                            Categoria: ${p.ID_Categoria}<br>
+                            ${p.Descrizione}<br>
+                            Piatto del giorno: ${p.Piatto_Del_Giorno == 1 ? "Sì" : "No"}
+                        </div>`;
+                    });
+                } else {
+                    elenco.innerHTML = "<i>Nessuna pietanza presente.</i>";
+                }
+            })
+            .catch(() => document.getElementById('elencoPietanze').innerText = "Errore di rete");
+        }
+
+        function aggiungiPietanza() {
+            const catId = document.getElementById('catId').value;
+            const nome = document.getElementById('nomePietanza').value;
+            const prezzo = document.getElementById('prezzoPietanza').value;
+            const descrizione = document.getElementById('descPietanza').value;
+            const piattoGiorno = document.getElementById('piattoGiorno').value;
+
+            fetch('index.php/pietanza', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': token
+                },
+                body: JSON.stringify({
+                    ID_Categoria: catId,
+                    Nome: nome,
+                    Prezzo: prezzo,
+                    Descrizione: descrizione,
+                    Piatto_Del_Giorno: piattoGiorno
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    document.getElementById('addMsg').innerText = "Pietanza aggiunta!";
+                    caricaPietanze();
+                } else {
+                    document.getElementById('addMsg').innerText = "Errore: " + (data.error || "Impossibile aggiungere");
+                }
+            })
+            .catch(() => document.getElementById('addMsg').innerText = "Errore di rete");
+        }
+    </script>
+</body>
+</html>
